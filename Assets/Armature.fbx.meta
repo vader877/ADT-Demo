@@ -47,7 +47,7 @@ ModelImporter:
       lastFrame: 19
       wrapMode: 0
       orientationOffsetY: 0
-      level: 0
+      level: -0.93
       cycleOffset: 0
       loop: 0
       hasAdditiveReferencePose: 0
@@ -92,7 +92,7 @@ ModelImporter:
     skinWeightsMode: 0
     maxBonesPerVertex: 4
     minBoneWeight: 0.001
-    optimizeBones: 1
+    optimizeBones: 0
     meshOptimizationFlags: -1
     indexFormat: 0
     secondaryUVAngleDistortion: 8
