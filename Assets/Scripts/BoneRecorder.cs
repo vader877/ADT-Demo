@@ -190,12 +190,20 @@ public class BoneRecorder : MonoBehaviour
 
     public void FastForward()
     {
-        RecordPlayerSingletonData.Instance.PlaySpeed = 3;
+        playspeed = 2;
+        if (recordedData.frames.Count > 0 && !isReplaying)
+        {
+            StartCoroutine(Replay());
+        }
     }
 
     public void Rewind()
     {
-        RecordPlayerSingletonData.Instance.PlaySpeed = -4;
+        playspeed = -2;
+        if (recordedData.frames.Count > 0 && !isReplaying)
+        {
+            StartCoroutine(Replay());
+        }
     }
 
     public void NextFrame()
@@ -243,21 +251,6 @@ public class BoneRecorder : MonoBehaviour
         recordedData = new BoneMotionData();
         sessionFileId++;
         RefreshFileList();
-    }
-
-    public void LoadRecording(string fileName)
-    {
-        RefreshFileList();
-        //string filePath = Path.Combine(Application.persistentDataPath, fileName);
-        //if (File.Exists(filePath))
-        //{
-        //    string json = File.ReadAllText(filePath);
-        //    recordedData = JsonUtility.FromJson<BoneMotionData>(json);
-        //}
-        //else
-        //{
-        //    Debug.LogError("Recording file not found.");
-        //}
     }
 
     string GenerateFileName(int id, string extension)
@@ -318,10 +311,14 @@ public class BoneRecorder : MonoBehaviour
     public void OnClickListButton(BoneMotionData boneMotionData = null)
     {
         FileName.text = boneMotionData.filename;
+        recordedData = boneMotionData;
+        RecordTarget.GetComponent<IRecordable>().PrepforReplay();
+        Tracker.value = 0;
+
     }
 
     public void OnClickBoolFlag()
     {
-
+        recordedData.FlagPositions.Add(currentFrame);
     }
 }
