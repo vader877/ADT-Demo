@@ -2,13 +2,14 @@ using System;
 using System.Collections;
 using System.Collections.Generic;
 using System.IO;
+using TMPro;
 using UnityEngine;
 using UnityEngine.UI;
 
 public class BoneRecorder : MonoBehaviour
 {
     public GameObject RecordTarget;
-    private List<Transform> bones = new List<Transform>(); // List to store bones
+    private List<Transform> bones = new(); // List to store bones
 
     private bool isRecording = false;
     private bool isReplaying = false;
@@ -20,6 +21,7 @@ public class BoneRecorder : MonoBehaviour
     public string selectedFileName;
     public Slider Tracker;
     public RectTransform contentPanel;
+    public GameObject fileListItemPrefab;
 
 
     void Start()
@@ -226,24 +228,26 @@ public class BoneRecorder : MonoBehaviour
     public void SaveRecording()
     {
         recordedData.TimeScale = Time.timeScale;
+        recordedData.filename = GenerateFileName(sessionFileId, "json");
         string json = JsonUtility.ToJson(recordedData);
-        File.WriteAllText(Path.Combine(Application.persistentDataPath, GenerateFileName(sessionFileId, "json")), json);
+        File.WriteAllText(Path.Combine(Application.persistentDataPath, recordedData.filename), json);
         recordedData = new BoneMotionData();
         sessionFileId++;
     }
 
     public void LoadRecording(string fileName)
     {
-        string filePath = Path.Combine(Application.persistentDataPath, fileName);
-        if (File.Exists(filePath))
-        {
-            string json = File.ReadAllText(filePath);
-            recordedData = JsonUtility.FromJson<BoneMotionData>(json);
-        }
-        else
-        {
-            Debug.LogError("Recording file not found.");
-        }
+        RefreshFileList();
+        //string filePath = Path.Combine(Application.persistentDataPath, fileName);
+        //if (File.Exists(filePath))
+        //{
+        //    string json = File.ReadAllText(filePath);
+        //    recordedData = JsonUtility.FromJson<BoneMotionData>(json);
+        //}
+        //else
+        //{
+        //    Debug.LogError("Recording file not found.");
+        //}
     }
 
     string GenerateFileName(int id, string extension)
@@ -256,5 +260,71 @@ public class BoneRecorder : MonoBehaviour
         string fileName = $"{id}_{date}_{time}.{extension}";
 
         return fileName;
+    }
+
+    private int offset = 145;
+
+    public void RefreshFileList()
+    {
+        var loadedFiles = contentPanel.GetComponentsInChildren<TMP_Text>();
+        string[] files = Directory.GetFiles(Application.persistentDataPath, "*.json");
+
+        int offsetPerItem = -45;
+        foreach (string filePath in files)
+        {
+            string json = File.ReadAllText(filePath);
+            BoneMotionData motionData = JsonUtility.FromJson<BoneMotionData>(json);
+
+            bool fileExists = false;
+            foreach (TMP_Text loadedFile in loadedFiles)
+            {
+                if(loadedFile.text.Equals(motionData.filename))
+                {
+                    fileExists = true;
+                    break;
+                }
+            }
+
+            if (fileExists)
+            {
+                continue;
+            }
+
+            GameObject newItem = Instantiate(fileListItemPrefab, contentPanel);
+
+            TMP_Text textComponent = newItem.GetComponentInChildren<TMP_Text>();
+            if (textComponent != null)
+            {
+               Debug.Log(textComponent.text);
+               textComponent.text = motionData.filename;
+            }
+
+            newItem.GetComponent<Button>().onClick.AddListener(onClickListButton);
+
+
+
+
+            newItem.transform.SetParent(contentPanel, false);
+            newItem.GetComponent<RectTransform>().anchoredPosition = new Vector3(0, offset += offsetPerItem, 0);
+            // Set the text of the item (assuming it's a UI Text component)
+            //Text textComponent = newItem.GetComponentInChildren<Text>();
+            if (textComponent != null)
+            {
+                // Display the name of the motion clip
+                //textComponent.text = motionData.motionClipName;
+            }
+
+            // Optionally, add a button click listener for selection
+            Button buttonComponent = newItem.GetComponent<Button>();
+            if (buttonComponent != null)
+            {
+                //buttonComponent.onClick.AddListener(() => OnMotionClipSelected(motionData));
+            }
+        }
+    }
+
+    public void onClickListButton()
+    {
+        Debug.Log("QUACK");
     }
 }
