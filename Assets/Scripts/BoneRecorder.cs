@@ -9,6 +9,10 @@ using UnityEngine.UI;
 public class BoneRecorder : MonoBehaviour
 {
     public GameObject RecordTarget;
+    public GameObject BoolFlag;
+    public GameObject FileListItemPrefab;
+    public TMP_Text FileName;
+
     private List<Transform> bones = new(); // List to store bones
 
     private bool isRecording = false;
@@ -19,10 +23,10 @@ public class BoneRecorder : MonoBehaviour
     private int sessionFileId = 1;
     private int playspeed = 1;
     public string selectedFileName;
+
     public Slider Tracker;
     public RectTransform contentPanel;
-    public GameObject fileListItemPrefab;
-
+    public Button BoolTrigger;
 
     void Start()
     {
@@ -37,6 +41,7 @@ public class BoneRecorder : MonoBehaviour
             Debug.LogError("Armature not found. Make sure the armature is named 'Armature'.");
         }
         Tracker.value = 0;
+        RefreshFileList();
     }
 
 
@@ -112,6 +117,11 @@ public class BoneRecorder : MonoBehaviour
     public void ToggleRecord(bool val)
     {
         isRecording = !isRecording;
+        if (isRecording)
+        {
+            recordedData.filename = GenerateFileName(sessionFileId, "json");
+            FileName.text = recordedData.filename;
+        }
     }
 
 
@@ -228,11 +238,11 @@ public class BoneRecorder : MonoBehaviour
     public void SaveRecording()
     {
         recordedData.TimeScale = Time.timeScale;
-        recordedData.filename = GenerateFileName(sessionFileId, "json");
         string json = JsonUtility.ToJson(recordedData);
         File.WriteAllText(Path.Combine(Application.persistentDataPath, recordedData.filename), json);
         recordedData = new BoneMotionData();
         sessionFileId++;
+        RefreshFileList();
     }
 
     public void LoadRecording(string fileName)
@@ -290,7 +300,7 @@ public class BoneRecorder : MonoBehaviour
                 continue;
             }
 
-            GameObject newItem = Instantiate(fileListItemPrefab, contentPanel);
+            GameObject newItem = Instantiate(FileListItemPrefab, contentPanel);
 
             TMP_Text textComponent = newItem.GetComponentInChildren<TMP_Text>();
             if (textComponent != null)
@@ -299,32 +309,19 @@ public class BoneRecorder : MonoBehaviour
                textComponent.text = motionData.filename;
             }
 
-            newItem.GetComponent<Button>().onClick.AddListener(onClickListButton);
-
-
-
-
+            newItem.GetComponentInChildren<Button>().onClick.AddListener(() => { OnClickListButton(motionData); });
             newItem.transform.SetParent(contentPanel, false);
             newItem.GetComponent<RectTransform>().anchoredPosition = new Vector3(0, offset += offsetPerItem, 0);
-            // Set the text of the item (assuming it's a UI Text component)
-            //Text textComponent = newItem.GetComponentInChildren<Text>();
-            if (textComponent != null)
-            {
-                // Display the name of the motion clip
-                //textComponent.text = motionData.motionClipName;
-            }
-
-            // Optionally, add a button click listener for selection
-            Button buttonComponent = newItem.GetComponent<Button>();
-            if (buttonComponent != null)
-            {
-                //buttonComponent.onClick.AddListener(() => OnMotionClipSelected(motionData));
-            }
         }
     }
 
-    public void onClickListButton()
+    public void OnClickListButton(BoneMotionData boneMotionData = null)
     {
-        Debug.Log("QUACK");
+        FileName.text = boneMotionData.filename;
+    }
+
+    public void OnClickBoolFlag()
+    {
+
     }
 }

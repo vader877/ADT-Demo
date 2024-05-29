@@ -34,6 +34,8 @@ public class BotControl : MonoBehaviour, IRecordable
 
     }
 
+
+
     public void Fall()
     {
         animator.enabled = false;
