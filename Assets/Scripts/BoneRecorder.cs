@@ -3,6 +3,7 @@ using System.Collections;
 using System.Collections.Generic;
 using System.IO;
 using UnityEngine;
+using UnityEngine.UI;
 
 public class BoneRecorder : MonoBehaviour
 {
@@ -13,8 +14,13 @@ public class BoneRecorder : MonoBehaviour
     private bool isReplaying = false;
     private BoneMotionData recordedData = new BoneMotionData();
     private int currentFrame = 0;
+    private int totalFrames = 0;
     private int sessionFileId = 1;
+    private int playspeed = 1;
     public string selectedFileName;
+    public Slider Tracker;
+    public RectTransform contentPanel;
+
 
     void Start()
     {
@@ -28,6 +34,7 @@ public class BoneRecorder : MonoBehaviour
         {
             Debug.LogError("Armature not found. Make sure the armature is named 'Armature'.");
         }
+        Tracker.value = 0;
     }
 
 
@@ -39,57 +46,57 @@ public class BoneRecorder : MonoBehaviour
         }
     }
 
-    void Update()
-    {
-        if (Input.GetKeyDown(KeyCode.R))
-        {
-            StartRecording();
-            Debug.Log("Started Recording...");
-        }
-        if (Input.GetKeyDown(KeyCode.T))
-        {
-            StopRecording(); 
-            Debug.Log("Stopped Recording...");
-        }
-        if (Input.GetKeyDown(KeyCode.Y))
-        {
-            StartPauseReplay();
-            Debug.Log("Started Replay...");
-        }
+    //void Update()
+    //{
+    //    if (Input.GetKeyDown(KeyCode.R))
+    //    {
+    //        StartRecording();
+    //        Debug.Log("Started Recording...");
+    //    }
+    //    if (Input.GetKeyDown(KeyCode.T))
+    //    {
+    //        StopRecording(); 
+    //        Debug.Log("Stopped Recording...");
+    //    }
+    //    if (Input.GetKeyDown(KeyCode.Y))
+    //    {
+    //        StartPauseReplay();
+    //        Debug.Log("Started Replay...");
+    //    }
 
-        if (Input.GetKey(KeyCode.Comma))
-        {
-            SetFramePosition(currentFrame++);
-            Debug.Log(bones.Find(x => x.name == "mixamorig:Head").transform.position);
-            //Debug.Log("Forward " + currentFrame);
-        }
+    //    if (Input.GetKey(KeyCode.Comma))
+    //    {
+    //        SetFramePosition(currentFrame++);
+    //        Debug.Log(bones.Find(x => x.name == "mixamorig:Head").transform.position);
+    //        //Debug.Log("Forward " + currentFrame);
+    //    }
 
-        if (Input.GetKey(KeyCode.Period))
-        {
-            SetFramePosition(currentFrame--);
-            Debug.Log("Backward" + currentFrame);
-        }
+    //    if (Input.GetKey(KeyCode.Period))
+    //    {
+    //        SetFramePosition(currentFrame--);
+    //        Debug.Log("Backward" + currentFrame);
+    //    }
 
-        if (Input.GetKeyDown(KeyCode.M))
-        {
-            PlayModeStarted();
-            Debug.Log("Started Replay...");
-        }
+    //    if (Input.GetKeyDown(KeyCode.M))
+    //    {
+    //        PlayModeStarted();
+    //        Debug.Log("Started Replay...");
+    //    }
 
 
-        if (Input.GetKeyDown(KeyCode.U))
-        {
-            Debug.Log("Saving");
-            SaveRecording(GenerateFileName(sessionFileId, "json"));
-            sessionFileId++;
-        }
+    //    if (Input.GetKeyDown(KeyCode.U))
+    //    {
+    //        Debug.Log("Saving");
+    //        SaveRecording(GenerateFileName(sessionFileId, "json"));
+    //        sessionFileId++;
+    //    }
 
-        if (Input.GetKeyDown(KeyCode.I))
-        {
-            LoadRecording(selectedFileName);
-            sessionFileId++;
-        }
-    }
+    //    if (Input.GetKeyDown(KeyCode.I))
+    //    {
+    //        LoadRecording(selectedFileName);
+    //        sessionFileId++;
+    //    }
+    //}
 
     private void FindBones(Transform parent)
     {
@@ -100,33 +107,32 @@ public class BoneRecorder : MonoBehaviour
         }
     }
 
-    public void StartRecording()
+    public void ToggleRecord(bool val)
     {
-        isRecording = true;
+        isRecording = !isRecording;
     }
 
-    public void StopRecording()
-    {
-        isRecording = false;
-    }
+
 
     public void StartPauseReplay()
     {
         if (recordedData.frames.Count > 0 && !isReplaying)
         {
-            PlayModeStarted();
+            totalFrames = recordedData.frames.Count;
+            playspeed = 1;
+            RecordTarget.GetComponent<IRecordable>().PrepforReplay();
             StartCoroutine(Replay());
         }
         else if (recordedData.frames.Count > 0 && isReplaying)
         {
-            isReplaying = false;        
+            isReplaying = false;
+            //playspeed = 0;        
         }
     }
 
     private void RecordFrame()
     {
         BoneFrameData frameData = new BoneFrameData();
-
 
         foreach (Transform bone in bones)
         {
@@ -140,17 +146,28 @@ public class BoneRecorder : MonoBehaviour
     private IEnumerator Replay()
     {
         isReplaying = true;
-        for (int frame = 0; frame < recordedData.frames.Count; frame++)
+        while (currentFrame >= 0 && currentFrame < recordedData.frames.Count)
         {
             for (int i = 0; i < bones.Count; i++)
             {
-                bones[i].localPosition = recordedData.frames[frame].positions[i];
-                bones[i].localRotation = recordedData.frames[frame].rotations[i];
+                bones[i].localPosition = recordedData.frames[currentFrame].positions[i];
+                bones[i].localRotation = recordedData.frames[currentFrame].rotations[i];
             }
 
-            while (!isReplaying)
+            Debug.Log("frame:" + currentFrame);
+            Debug.Log("frametot:" + recordedData.frames.Count);
+
+            if (playspeed != 0)
             {
-                yield return null;
+                float normalizedValue = Mathf.Clamp01((float)currentFrame % recordedData.frames.Count / recordedData.frames.Count);
+                Tracker.value = normalizedValue;
+            }
+
+            currentFrame += playspeed;
+
+            if (!isReplaying)
+            {
+                break;
             }
 
             yield return new WaitForFixedUpdate(); // Wait for the next frame
@@ -158,32 +175,36 @@ public class BoneRecorder : MonoBehaviour
         isReplaying = false;
     }
 
+
     public void FastForward()
     {
-
+        RecordPlayerSingletonData.Instance.PlaySpeed = 3;
     }
 
     public void Rewind()
     {
-
+        RecordPlayerSingletonData.Instance.PlaySpeed = -4;
     }
 
     public void NextFrame()
     {
-        if (isReplaying)
-        {
-            StopCoroutine(Replay());
-        }
+        isReplaying = false;
         SetFramePosition(currentFrame++);
+        float normalizedValue = Mathf.Clamp01((float)currentFrame % recordedData.frames.Count / recordedData.frames.Count);
+        Tracker.value = normalizedValue;
     }
 
     public void PreviousFrame()
     {
-        if (isReplaying)
-        {
-            StopCoroutine(Replay());
-        }
+        isReplaying = false;
         SetFramePosition(currentFrame--);
+        float normalizedValue = Mathf.Clamp01((float)currentFrame % recordedData.frames.Count / recordedData.frames.Count);
+        Tracker.value = normalizedValue;
+    }
+
+    public void OnSliderValueChanged()
+    {
+
     }
 
     private void SetFramePosition(int frameIndex)
@@ -202,27 +223,16 @@ public class BoneRecorder : MonoBehaviour
         }
     }
 
-
-    private void PlayModeStarted()
+    public void SaveRecording()
     {
-        foreach (Transform bone in bones)
-        {
-            var rb = bone.GetComponent<Rigidbody>();
-            if (rb != null)
-            {
-                rb.isKinematic = true;
-                rb.useGravity = false;
-            }
-        }
-    }
-
-    private void SaveRecording(string fileName)
-    {
+        recordedData.TimeScale = Time.timeScale;
         string json = JsonUtility.ToJson(recordedData);
-        File.WriteAllText(Path.Combine(Application.persistentDataPath, fileName), json);
+        File.WriteAllText(Path.Combine(Application.persistentDataPath, GenerateFileName(sessionFileId, "json")), json);
+        recordedData = new BoneMotionData();
+        sessionFileId++;
     }
 
-    private void LoadRecording(string fileName)
+    public void LoadRecording(string fileName)
     {
         string filePath = Path.Combine(Application.persistentDataPath, fileName);
         if (File.Exists(filePath))

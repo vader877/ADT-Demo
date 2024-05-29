@@ -2,7 +2,7 @@ using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
 
-public class GeneralTest : MonoBehaviour
+public class BotControl : MonoBehaviour, IRecordable
 {
     private Animator animator;
     private Rigidbody[] rbs;
@@ -40,6 +40,7 @@ public class GeneralTest : MonoBehaviour
 
         foreach (Rigidbody rb in rbs)
         {
+            rb.isKinematic = false;
             rb.useGravity = true;
         }
     }
@@ -51,6 +52,17 @@ public class GeneralTest : MonoBehaviour
         foreach (Rigidbody rb in rbs)
         {
             rb.useGravity = false;
+        }
+    }
+
+    public void PrepforReplay()
+    {
+        animator.enabled = false;
+
+        foreach (Rigidbody rb in rbs)
+        {
+            rb.useGravity = false;
+            rb.isKinematic = true;
         }
     }
 }
