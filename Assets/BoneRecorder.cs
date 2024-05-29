@@ -10,6 +10,7 @@ public class BoneRecorder : MonoBehaviour
     private List<Dictionary<Transform, Quaternion>> recordedRotations = new List<Dictionary<Transform, Quaternion>>();
     private bool isRecording = false;
     private bool isReplaying = false;
+    private bool replayMode = false;
     private Animator animator;
 
 
@@ -31,7 +32,14 @@ public class BoneRecorder : MonoBehaviour
 
     }
 
-    bool stopAnim = false;
+
+    private void FixedUpdate()
+    {
+        if (isRecording)
+        {
+            RecordFrame();
+        }
+    }
 
     void Update()
     {
@@ -51,16 +59,27 @@ public class BoneRecorder : MonoBehaviour
             Debug.Log("Started Replay...");
         }
 
-        if (Input.GetKeyDown(KeyCode.G))
+        if (Input.GetKeyDown(KeyCode.Comma))
         {
-            stopAnim = true;
+            StepForward();
+            Debug.Log(bones.Find(x => x.name == "mixamorig:Head").transform.position);
+            //Debug.Log("Forward " + currentFrame);
+        }
+
+        if (Input.GetKeyDown(KeyCode.Period))
+        {
+            StepBackward();
+            Debug.Log("Backward" + currentFrame);
+        }
+
+        if (Input.GetKeyDown(KeyCode.M))
+        {
+            PlayModeStarted();
+            Debug.Log("Started Replay...");
         }
 
 
-        if (isRecording)
-        {
-            RecordFrame();
-        }
+
     }
 
     private void FindBones(Transform parent)
@@ -103,11 +122,6 @@ public class BoneRecorder : MonoBehaviour
 
     private void RecordFrame()
     {
-        if(stopAnim)
-        {
-            animator.enabled = false;
-        }
-
         Dictionary<Transform, Vector3> currentPositions = new Dictionary<Transform, Vector3>();
         Dictionary<Transform, Quaternion> currentRotations = new Dictionary<Transform, Quaternion>();
 
@@ -130,9 +144,52 @@ public class BoneRecorder : MonoBehaviour
             {
                 bone.localPosition = recordedPositions[frame][bone];
                 bone.localRotation = recordedRotations[frame][bone];
+                
             }
-            yield return null; // Wait for the next frame
+            yield return new WaitForFixedUpdate(); // Wait for the next frame
         }
         isReplaying = false;
     }
+
+    private int currentFrame = 0;
+
+    private void SetFramePosition(int frame)
+    {
+        foreach (Transform bone in bones)
+        {
+            bone.localPosition = recordedPositions[frame][bone];
+            bone.localRotation = recordedRotations[frame][bone];
+        }
+    }
+
+    private void StepForward()
+    {
+        if (recordedPositions.Count>0 && currentFrame < recordedPositions.Count)
+        {
+            SetFramePosition(currentFrame++);
+        }
+    }
+
+    private void StepBackward()
+    {
+        if (recordedPositions.Count > 0 && currentFrame > 0 )
+        {
+            SetFramePosition(currentFrame--);
+        }
+    }
+
+
+
+    private void PlayModeStarted()
+    {
+        foreach (Transform bone in bones)
+        {
+            var rb = bone.GetComponent<Rigidbody>();
+            if (rb != null)
+            {
+                rb.isKinematic = true;
+            }
+        }
+    }
+
 }
