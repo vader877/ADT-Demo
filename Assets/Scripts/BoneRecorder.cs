@@ -12,6 +12,7 @@ public class BoneRecorder : MonoBehaviour
     public GameObject BoolFlag;
     public GameObject FileListItemPrefab;
     public TMP_Text FileName;
+    public Toggle PlayPause;
 
     private List<Transform> bones = new(); // List to store bones
 
@@ -119,8 +120,12 @@ public class BoneRecorder : MonoBehaviour
         isRecording = !isRecording;
         if (isRecording)
         {
+            currentFrame = 0;
+            Tracker.value = 0;
             recordedData.filename = GenerateFileName(sessionFileId, "json");
             FileName.text = recordedData.filename;
+            RecordTarget.GetComponent<IRecordable>().PrepforRecord();
+
         }
     }
 
@@ -184,6 +189,7 @@ public class BoneRecorder : MonoBehaviour
 
             yield return new WaitForFixedUpdate(); // Wait for the next frame
         }
+        PlayPause.isOn = true;
         isReplaying = false;
     }
 
@@ -193,6 +199,7 @@ public class BoneRecorder : MonoBehaviour
         playspeed = 2;
         if (recordedData.frames.Count > 0 && !isReplaying)
         {
+            RecordTarget.GetComponent<IRecordable>().PrepforReplay();
             StartCoroutine(Replay());
         }
     }
@@ -202,12 +209,15 @@ public class BoneRecorder : MonoBehaviour
         playspeed = -2;
         if (recordedData.frames.Count > 0 && !isReplaying)
         {
+            RecordTarget.GetComponent<IRecordable>().PrepforReplay();
+            currentFrame -= 1;
             StartCoroutine(Replay());
         }
     }
 
     public void NextFrame()
     {
+        RecordTarget.GetComponent<IRecordable>().PrepforReplay();
         isReplaying = false;
         SetFramePosition(currentFrame++);
         float normalizedValue = Mathf.Clamp01((float)currentFrame % recordedData.frames.Count / recordedData.frames.Count);
@@ -216,16 +226,14 @@ public class BoneRecorder : MonoBehaviour
 
     public void PreviousFrame()
     {
+        RecordTarget.GetComponent<IRecordable>().PrepforReplay();
         isReplaying = false;
         SetFramePosition(currentFrame--);
         float normalizedValue = Mathf.Clamp01((float)currentFrame % recordedData.frames.Count / recordedData.frames.Count);
         Tracker.value = normalizedValue;
     }
 
-    public void OnSliderValueChanged()
-    {
 
-    }
 
     private void SetFramePosition(int frameIndex)
     {
@@ -314,7 +322,12 @@ public class BoneRecorder : MonoBehaviour
         recordedData = boneMotionData;
         RecordTarget.GetComponent<IRecordable>().PrepforReplay();
         Tracker.value = 0;
-
+        currentFrame = 0;
+        for (int i = 0; i < bones.Count; i++)
+        {
+            bones[i].localPosition = recordedData.frames[currentFrame].positions[i];
+            bones[i].localRotation = recordedData.frames[currentFrame].rotations[i];
+        }
     }
 
     public void OnClickBoolFlag()

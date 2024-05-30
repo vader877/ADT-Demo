@@ -22,16 +22,15 @@ public class BotControl : MonoBehaviour, IRecordable
 
     void Update()
     {
-        if (Input.GetKeyDown(KeyCode.F))
-        {
-            Fall();
-        }
+        //if (Input.GetKeyDown(KeyCode.F))
+        //{
+        //    Fall();
+        //}
 
-        if (Input.GetKeyDown(KeyCode.G))
-        {
-            ResetRun();
-        }
-
+        //if (Input.GetKeyDown(KeyCode.G))
+        //{
+        //    ResetRun();
+        //}
     }
 
 
@@ -47,7 +46,7 @@ public class BotControl : MonoBehaviour, IRecordable
         }
     }
 
-    public void ResetRun()
+    public void PrepforRecord()
     {
         animator.enabled = true;
 
